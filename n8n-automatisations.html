@@ -1,0 +1,2281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>n8n + Claude — Automatisations Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #FF4F00;
+    --orange-light: #FF6B2B;
+    --black: #0A0A0A;
+    --white: #FAFAF8;
+    --grey: #1A1A1A;
+    --grey2: #2A2A2A;
+    --grey3: #3A3A3A;
+    --text-muted: #888;
+    --green: #00E87A;
+    --blue: #0096FF;
+    --purple: #9B5FFF;
+    --yellow: #FFD600;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  .hero {
+    background: var(--black);
+    padding: 60px 40px 40px;
+    text-align: center;
+    position: relative;
+    border-bottom: 1px solid var(--grey2);
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -100px; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 300px;
+    background: radial-gradient(ellipse, rgba(255,79,0,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(255,79,0,0.12);
+    border: 1px solid rgba(255,79,0,0.35);
+    color: var(--orange);
+    padding: 6px 18px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    animation: fadeIn 0.6s ease;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.05;
+    margin-bottom: 16px;
+    animation: slideUp 0.7s ease;
+  }
+  .hero h1 span { color: var(--orange); }
+  .hero p {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    max-width: 540px;
+    margin: 0 auto 32px;
+    line-height: 1.7;
+    animation: slideUp 0.8s ease;
+  }
+  .openrouter-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--grey);
+    border: 1px solid var(--grey3);
+    border-radius: 12px;
+    padding: 12px 22px;
+    font-size: 0.85rem;
+    color: #aaa;
+    animation: fadeIn 1s ease;
+  }
+  .openrouter-note strong { color: var(--white); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+
+  /* TABS */
+  .tabs-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,10,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--grey2);
+    padding: 0 20px;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    max-width: 900px;
+    margin: 0 auto;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 16px 22px;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border: none;
+    background: transparent;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tab:hover { color: var(--white); }
+  .tab.active { color: var(--white); border-bottom-color: var(--orange); }
+  .tab-icon { font-size: 1rem; }
+
+  /* MAIN */
+  .main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  /* SECTION */
+  .section { display: none; }
+  .section.active { display: block; animation: fadeIn 0.4s ease; }
+
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 36px;
+    padding: 28px;
+    background: var(--grey);
+    border-radius: 16px;
+    border: 1px solid var(--grey2);
+    position: relative;
+    overflow: hidden;
+  }
+  .section-header::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 200px; height: 100%;
+    background: linear-gradient(to left, rgba(255,79,0,0.06), transparent);
+  }
+  .section-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .section-header p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
+
+  /* CARD */
+  .card {
+    background: var(--grey);
+    border: 1px solid var(--grey2);
+    border-radius: 14px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--grey3); }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    cursor: pointer;
+    user-select: none;
+    gap: 16px;
+  }
+  .card-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+  }
+  .card-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--orange);
+    background: rgba(255,79,0,0.1);
+    border: 1px solid rgba(255,79,0,0.25);
+    border-radius: 6px;
+    padding: 3px 8px;
+    flex-shrink: 0;
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.98rem;
+  }
+  .card-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .btn-copy {
+    background: var(--orange);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .btn-copy:hover { background: var(--orange-light); transform: translateY(-1px); }
+  .btn-copy.copied { background: var(--green); color: var(--black); }
+  .btn-toggle {
+    background: var(--grey2);
+    color: var(--text-muted);
+    border: none;
+    border-radius: 6px;
+    width: 30px; height: 30px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-toggle:hover { background: var(--grey3); color: var(--white); }
+
+  /* CODE BLOCK */
+  .code-block {
+    display: none;
+    border-top: 1px solid var(--grey2);
+    position: relative;
+  }
+  .code-block.open { display: block; }
+  .code-instructions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 14px 20px;
+    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid var(--grey2);
+  }
+  .step-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--grey2);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    color: #ccc;
+  }
+  .step-badge b { color: var(--orange); font-family: 'DM Mono', monospace; }
+  pre {
+    background: #0D0D0D;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.6;
+    color: #c9d1d9;
+    max-height: 360px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--grey3) transparent;
+  }
+  pre::-webkit-scrollbar { width: 5px; height: 5px; }
+  pre::-webkit-scrollbar-thumb { background: var(--grey3); border-radius: 3px; }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  /* CONFIG NOTE */
+  .config-box {
+    background: rgba(0,150,255,0.06);
+    border: 1px solid rgba(0,150,255,0.2);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    font-size: 0.85rem;
+    line-height: 1.7;
+  }
+  .config-box strong { color: var(--blue); font-family: 'DM Mono', monospace; }
+  .config-box h4 { font-family: 'Syne', sans-serif; color: var(--blue); margin-bottom: 10px; font-size: 0.95rem; }
+
+  .tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .tag-trigger { background: rgba(0,232,122,0.12); color: var(--green); border: 1px solid rgba(0,232,122,0.25); }
+  .tag-ai { background: rgba(155,95,255,0.12); color: var(--purple); border: 1px solid rgba(155,95,255,0.25); }
+  .tag-action { background: rgba(0,150,255,0.12); color: var(--blue); border: 1px solid rgba(0,150,255,0.25); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">⚡ Workflows Prêts à l'emploi</div>
+  <h1>Automatisations <span>n8n</span><br>pour les Pros</h1>
+  <p>20 workflows complets, copiez-collez dans n8n et automatisez vos tâches répétitives en quelques minutes.</p>
+  <div class="openrouter-note">
+    <div class="dot"></div>
+    <span>Propulsé par <strong>OpenRouter AI</strong> — Zéro coût supplémentaire</span>
+  </div>
+</div>
+
+<div class="tabs-wrapper">
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('comptable')"><span class="tab-icon">🧮</span> Comptable</button>
+    <button class="tab" onclick="showTab('gerant')"><span class="tab-icon">💼</span> Gérant PME</button>
+    <button class="tab" onclick="showTab('juriste')"><span class="tab-icon">⚖️</span> Juriste / Avocat</button>
+    <button class="tab" onclick="showTab('commercial')"><span class="tab-icon">🤝</span> Commercial</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- CONFIG BOX -->
+  <div class="config-box">
+    <h4>🔧 Configuration OpenRouter — À faire une seule fois</h4>
+    Dans chaque workflow, remplacez <strong>YOUR_OPENROUTER_API_KEY</strong> par votre clé sur <strong>openrouter.ai/keys</strong><br>
+    Le modèle utilisé : <strong>mistralai/mistral-7b-instruct:free</strong> (gratuit) ou <strong>anthropic/claude-3-haiku</strong> (payant, très rapide)<br>
+    Import dans n8n : <strong>Menu → Workflows → Import from JSON → Coller → Save</strong>
+  </div>
+
+  <!-- ======== COMPTABLE ======== -->
+  <div id="tab-comptable" class="section active">
+    <div class="section-header">
+      <div class="section-icon">🧮</div>
+      <div>
+        <h2>Comptable</h2>
+        <p>Automatisez l'analyse de factures, la catégorisation des dépenses, les relances clients et la génération de rapports financiers avec l'IA.</p>
+      </div>
+    </div>
+
+    <!-- Workflow 1 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">01</span>
+          <div>
+            <div class="card-title">Analyse automatique de factures par email <span class="tag tag-trigger">Email</span><span class="tag tag-ai">IA</span></div>
+            <div class="card-desc">Reçoit une facture par email → extrait montant, date, fournisseur → stocke dans Google Sheets</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('comptable_1', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('comptable_1', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="comptable_1">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-comptable_1">{
+  "name": "Comptable — Analyse Factures Email",
+  "nodes": [
+    {
+      "parameters": {
+        "mailbox": "INBOX",
+        "filters": { "subject": "facture" }
+      },
+      "name": "Email Trigger (IMAP)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "model",
+              "value": "mistralai/mistral-7b-instruct:free"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\":\"system\",\"content\":\"Tu es un assistant comptable. Extrait de ce texte de facture : le montant total TTC, la date, le nom du fournisseur, le numéro de facture, la TVA. Réponds uniquement en JSON valide avec les champs: montant, date, fournisseur, numero_facture, tva.\"},{\"role\":\"user\",\"content\":\"{{$node[\\\"Email Trigger (IMAP)\\\"].json[\\\"text\\\"]}}\"}]"
+            }
+          ]
+        },
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Extraire données facture",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.item.json.choices[0].message.content;\nconst clean = content.replace(/```json|```/g,'').trim();\nconst data = JSON.parse(clean);\nreturn [{ json: data }];"
+      },
+      "name": "Parser JSON réponse",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "Factures!A:F",
+        "valueInputOption": "USER_ENTERED",
+        "values": {
+          "values": [
+            ["={{$node[\"Parser JSON réponse\"].json[\"date\"]}}", "={{$node[\"Parser JSON réponse\"].json[\"fournisseur\"]}}", "={{$node[\"Parser JSON réponse\"].json[\"numero_facture\"]}}", "={{$node[\"Parser JSON réponse\"].json[\"montant\"]}}", "={{$node[\"Parser JSON réponse\"].json[\"tva\"]}}", "=NOW()"]
+          ]
+        }
+      },
+      "name": "Google Sheets — Enregistrer",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Email Trigger (IMAP)": { "main": [[{ "node": "OpenRouter — Extraire données facture", "type": "main", "index": 0 }]] },
+    "OpenRouter — Extraire données facture": { "main": [[{ "node": "Parser JSON réponse", "type": "main", "index": 0 }]] },
+    "Parser JSON réponse": { "main": [[{ "node": "Google Sheets — Enregistrer", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- Workflow 2 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">02</span>
+          <div>
+            <div class="card-title">Relance client impayé automatique <span class="tag tag-trigger">Planifié</span><span class="tag tag-ai">IA</span></div>
+            <div class="card-desc">Vérifie Google Sheets chaque matin → génère email de relance personnalisé → envoie par Gmail</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('comptable_2', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('comptable_2', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="comptable_2">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-comptable_2">{
+  "name": "Comptable — Relance Impayés Automatique",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9 * * 1-5" }] } },
+      "name": "Cron — Chaque matin 9h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "Clients!A:F",
+        "keyRow": 1,
+        "dataStartRow": 2
+      },
+      "name": "Lire factures impayées",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [{ "value1": "={{$json[\"statut\"]}}", "operation": "equal", "value2": "IMPAYÉ" }],
+          "number": [{ "value1": "={{$json[\"jours_retard\"]}}", "operation": "larger", "value2": 7 }]
+        }
+      },
+      "name": "Filtrer — Impayés > 7 jours",
+      "type": "n8n-nodes-base.filter",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un assistant comptable professionnel. Rédige un email de relance poli mais ferme pour une facture impayée. Ton: professionnel et courtois. Format: Objet sur la première ligne, puis le corps de l'email.\"},{\"role\":\"user\",\"content\":\"Client: {{$json.client}}, Montant: {{$json.montant}}€, Facture n°{{$json.numero}}, En retard de {{$json.jours_retard}} jours.\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Rédiger relance",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "comptabilite@monentreprise.fr",
+        "toEmail": "={{$node[\"Filtrer — Impayés > 7 jours\"].json[\"email_client\"]}}",
+        "subject": "Rappel de paiement — Facture {{$node[\"Filtrer — Impayés > 7 jours\"].json[\"numero\"]}}",
+        "text": "={{$node[\"OpenRouter — Rédiger relance\"].json[\"choices\"][0][\"message\"][\"content\"]}}"
+      },
+      "name": "Gmail — Envoyer relance",
+      "type": "n8n-nodes-base.gmail",
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Cron — Chaque matin 9h": { "main": [[{ "node": "Lire factures impayées", "type": "main", "index": 0 }]] },
+    "Lire factures impayées": { "main": [[{ "node": "Filtrer — Impayés > 7 jours", "type": "main", "index": 0 }]] },
+    "Filtrer — Impayés > 7 jours": { "main": [[{ "node": "OpenRouter — Rédiger relance", "type": "main", "index": 0 }]] },
+    "OpenRouter — Rédiger relance": { "main": [[{ "node": "Gmail — Envoyer relance", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- Workflow 3 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">03</span>
+          <div>
+            <div class="card-title">Catégorisation intelligente des dépenses <span class="tag tag-trigger">Webhook</span><span class="tag tag-ai">IA</span></div>
+            <div class="card-desc">Reçoit une dépense → l'IA la catégorise automatiquement → met à jour le tableau de bord</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('comptable_3', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('comptable_3', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="comptable_3">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-comptable_3">{
+  "name": "Comptable — Catégorisation Dépenses IA",
+  "nodes": [
+    {
+      "parameters": { "path": "categoriser-depense", "httpMethod": "POST" },
+      "name": "Webhook — Nouvelle dépense",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un expert comptable. Catégorise cette dépense selon le plan comptable français. Choisir parmi: Fournitures, Loyer, Salaires, Marketing, Transport, Téléphone/Internet, Matériel informatique, Formation, Sous-traitance, Restauration, Autre. Réponds uniquement en JSON: {categorie, compte_comptable, description_courte, deductible_tva}\"},{\"role\":\"user\",\"content\":\"Libellé: {{$json.libelle}}, Montant: {{$json.montant}}€, Fournisseur: {{$json.fournisseur}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Catégoriser",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.item.json.choices[0].message.content;\nconst clean = content.replace(/```json|```/g,'').trim();\nconst categorie = JSON.parse(clean);\nconst depense = $('Webhook — Nouvelle dépense').item.json;\nreturn [{ json: { ...depense, ...categorie, date_traitement: new Date().toISOString() } }];"
+      },
+      "name": "Fusionner données",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "Depenses!A:H",
+        "valueInputOption": "USER_ENTERED",
+        "values": { "values": [["={{$json.date}}", "={{$json.libelle}}", "={{$json.fournisseur}}", "={{$json.montant}}", "={{$json.categorie}}", "={{$json.compte_comptable}}", "={{$json.deductible_tva}}", "={{$json.date_traitement}}"]] }
+      },
+      "name": "Google Sheets — Enregistrer",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — Nouvelle dépense": { "main": [[{ "node": "OpenRouter — Catégoriser", "type": "main", "index": 0 }]] },
+    "OpenRouter — Catégoriser": { "main": [[{ "node": "Fusionner données", "type": "main", "index": 0 }]] },
+    "Fusionner données": { "main": [[{ "node": "Google Sheets — Enregistrer", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- Workflow 4 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">04</span>
+          <div>
+            <div class="card-title">Rapport financier mensuel auto <span class="tag tag-trigger">Planifié</span><span class="tag tag-ai">IA</span><span class="tag tag-action">Email</span></div>
+            <div class="card-desc">Le 1er du mois → collecte les données Sheets → génère analyse IA → envoie par email</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('comptable_4', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('comptable_4', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="comptable_4">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-comptable_4">{
+  "name": "Comptable — Rapport Financier Mensuel",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 8 1 * *" }] } },
+      "name": "Cron — 1er du mois 8h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "Resume!A1:Z50",
+        "keyRow": 1
+      },
+      "name": "Lire données financières",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nconst summary = rows.map(r => `${r.json.mois}: CA=${r.json.chiffre_affaires}€, Charges=${r.json.charges}€, Resultat=${r.json.resultat}€`).join('\\n');\nreturn [{ json: { summary } }];"
+      },
+      "name": "Préparer résumé",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un expert-comptable. Analyse ces données financières et rédige un rapport mensuel professionnel en HTML incluant: résumé exécutif, points positifs, alertes, recommandations pour le mois suivant.\"},{\"role\":\"user\",\"content\":\"Données du mois précédent:\\n{{$json.summary}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Générer rapport",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "comptabilite@monentreprise.fr",
+        "toEmail": "direction@monentreprise.fr",
+        "subject": "📊 Rapport Financier Mensuel — {{new Date().toLocaleDateString('fr-FR', {month: 'long', year: 'numeric'})}}",
+        "html": "={{$json.choices[0].message.content}}"
+      },
+      "name": "Gmail — Envoyer rapport",
+      "type": "n8n-nodes-base.gmail",
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Cron — 1er du mois 8h": { "main": [[{ "node": "Lire données financières", "type": "main", "index": 0 }]] },
+    "Lire données financières": { "main": [[{ "node": "Préparer résumé", "type": "main", "index": 0 }]] },
+    "Préparer résumé": { "main": [[{ "node": "OpenRouter — Générer rapport", "type": "main", "index": 0 }]] },
+    "OpenRouter — Générer rapport": { "main": [[{ "node": "Gmail — Envoyer rapport", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- Workflow 5 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">05</span>
+          <div>
+            <div class="card-title">Détection d'anomalies comptables <span class="tag tag-trigger">Planifié</span><span class="tag tag-ai">IA</span><span class="tag tag-action">Slack</span></div>
+            <div class="card-desc">Analyse les transactions quotidiennes → détecte les doublons et anomalies → alerte sur Slack</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('comptable_5', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('comptable_5', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="comptable_5">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-comptable_5">{
+  "name": "Comptable — Détection Anomalies",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 18 * * 1-5" }] } },
+      "name": "Cron — 18h en semaine",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "Transactions!A:E",
+        "keyRow": 1,
+        "dataStartRow": 2
+      },
+      "name": "Lire transactions du jour",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = new Date().toLocaleDateString('fr-FR');\nconst all = $input.all();\nconst todayTx = all.filter(i => i.json.date === today);\nconst txText = todayTx.map(i => `${i.json.libelle} | ${i.json.montant}€ | ${i.json.fournisseur}`).join('\\n');\nreturn [{ json: { transactions: txText, nb: todayTx.length } }];"
+      },
+      "name": "Filtrer transactions du jour",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un auditeur comptable. Analyse ces transactions et identifie: doublons potentiels, montants inhabituellement élevés (>5000€), libellés suspects, fournisseurs inconnus. Réponds en JSON: {anomalies: [{type, description, severite}], score_risque: 0-10}\"},{\"role\":\"user\",\"content\":\"Transactions d'aujourd'hui:\\n{{$json.transactions}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Détecter anomalies",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.item.json.choices[0].message.content;\nconst clean = content.replace(/```json|```/g,'').trim();\nconst result = JSON.parse(clean);\nif(result.anomalies && result.anomalies.length > 0) {\n  return [{ json: { hasAnomalies: true, ...result } }];\n}\nreturn [{ json: { hasAnomalies: false } }];"
+      },
+      "name": "Vérifier anomalies",
+      "type": "n8n-nodes-base.code",
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": { "boolean": [{ "value1": "={{$json.hasAnomalies}}", "value2": true }] }
+      },
+      "name": "IF — Anomalies trouvées",
+      "type": "n8n-nodes-base.if",
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#comptabilite-alertes",
+        "text": "🚨 *Anomalies Comptables Détectées* — Score risque: {{$json.score_risque}}/10\n\n{{$json.anomalies.map(a => `• [${a.severite.toUpperCase()}] ${a.type}: ${a.description}`).join('\\n')}}\n\n_Vérification manuelle recommandée_"
+      },
+      "name": "Slack — Alerter équipe",
+      "type": "n8n-nodes-base.slack",
+      "position": [1560, 200]
+    }
+  ],
+  "connections": {
+    "Cron — 18h en semaine": { "main": [[{ "node": "Lire transactions du jour", "type": "main", "index": 0 }]] },
+    "Lire transactions du jour": { "main": [[{ "node": "Filtrer transactions du jour", "type": "main", "index": 0 }]] },
+    "Filtrer transactions du jour": { "main": [[{ "node": "OpenRouter — Détecter anomalies", "type": "main", "index": 0 }]] },
+    "OpenRouter — Détecter anomalies": { "main": [[{ "node": "Vérifier anomalies", "type": "main", "index": 0 }]] },
+    "Vérifier anomalies": { "main": [[{ "node": "IF — Anomalies trouvées", "type": "main", "index": 0 }]] },
+    "IF — Anomalies trouvées": { "main": [[{ "node": "Slack — Alerter équipe", "type": "main", "index": 0 }], []] }
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== GÉRANT PME ======== -->
+  <div id="tab-gerant" class="section">
+    <div class="section-header">
+      <div class="section-icon">💼</div>
+      <div>
+        <h2>Gérant PME</h2>
+        <p>Pilotez votre entreprise avec des automatisations pour le suivi des KPIs, la gestion des équipes, les réunions et la veille concurrentielle.</p>
+      </div>
+    </div>
+
+    <!-- G1 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">01</span>
+          <div>
+            <div class="card-title">Briefing quotidien du dirigeant <span class="tag tag-trigger">Planifié</span><span class="tag tag-ai">IA</span><span class="tag tag-action">Email</span></div>
+            <div class="card-desc">Chaque matin collecte KPIs, emails importants, agenda → synthèse IA → email de briefing</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('gerant_1', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('gerant_1', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="gerant_1">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-gerant_1">{
+  "name": "Gérant PME — Briefing Quotidien CEO",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 7 * * 1-5" }] } },
+      "name": "Cron — 7h du matin",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "KPIs!A:D",
+        "keyRow": 1,
+        "dataStartRow": 2
+      },
+      "name": "Lire KPIs du jour",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es l'assistant personnel d'un PDG de PME. Rédige un briefing matinal concis en HTML: 1) Résumé des KPIs avec tendances (flèches ↑↓), 2) 3 priorités du jour, 3) Alertes et points d'attention, 4) Citation motivante. Style: professionnel, direct, actionnable.\"},{\"role\":\"user\",\"content\":\"KPIs d'hier: CA={{$json.ca}}€ (objectif={{$json.objectif_ca}}€), Nouveaux clients={{$json.nouveaux_clients}}, Satisfaction={{$json.nps}}/10, Tickets ouverts={{$json.tickets_ouverts}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Générer briefing",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "assistant@monentreprise.fr",
+        "toEmail": "pdg@monentreprise.fr",
+        "subject": "☀️ Briefing du {{new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'})}}",
+        "html": "={{$json.choices[0].message.content}}"
+      },
+      "name": "Gmail — Envoyer briefing",
+      "type": "n8n-nodes-base.gmail",
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Cron — 7h du matin": { "main": [[{ "node": "Lire KPIs du jour", "type": "main", "index": 0 }]] },
+    "Lire KPIs du jour": { "main": [[{ "node": "OpenRouter — Générer briefing", "type": "main", "index": 0 }]] },
+    "OpenRouter — Générer briefing": { "main": [[{ "node": "Gmail — Envoyer briefing", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- G2 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">02</span>
+          <div>
+            <div class="card-title">Compte-rendu de réunion automatique <span class="tag tag-trigger">Webhook</span><span class="tag tag-ai">IA</span><span class="tag tag-action">Notion</span></div>
+            <div class="card-desc">Reçoit transcript → extrait décisions + actions + responsables → publie dans Notion</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('gerant_2', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('gerant_2', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="gerant_2">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-gerant_2">{
+  "name": "Gérant PME — Compte-Rendu Réunion Auto",
+  "nodes": [
+    {
+      "parameters": { "path": "compte-rendu-reunion", "httpMethod": "POST" },
+      "name": "Webhook — Nouveau transcript",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un assistant de direction expert. Analyse ce transcript de réunion et génère un compte-rendu structuré en JSON: {titre, date, participants, resume_executif, decisions: [{decision, responsable, echeance}], actions: [{action, responsable, echeance, priorite}], points_ouverts, prochaine_reunion}\"},{\"role\":\"user\",\"content\":\"Transcript:\\n{{$json.transcript}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Analyser réunion",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.item.json.choices[0].message.content;\nconst clean = content.replace(/```json|```/g,'').trim();\nreturn [{ json: JSON.parse(clean) }];"
+      },
+      "name": "Parser JSON",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "databaseId": "VOTRE_NOTION_DATABASE_ID",
+        "title": "={{$json.titre}} — {{$json.date}}",
+        "propertiesUi": {
+          "propertyValues": [
+            { "key": "Date", "type": "date", "dateValue": "={{$json.date}}" },
+            { "key": "Participants", "type": "richText", "textValue": "={{$json.participants.join(', ')}}" },
+            { "key": "Statut", "type": "select", "selectValue": "Validé" }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            { "type": "heading_2", "textContent": "Résumé Exécutif" },
+            { "type": "paragraph", "textContent": "={{$json.resume_executif}}" },
+            { "type": "heading_2", "textContent": "Décisions Prises" },
+            { "type": "bulleted_list_item", "textContent": "={{$json.decisions.map(d => `${d.decision} — ${d.responsable} (${d.echeance})`).join('\\n')}}" },
+            { "type": "heading_2", "textContent": "Actions à Mener" },
+            { "type": "bulleted_list_item", "textContent": "={{$json.actions.map(a => `[${a.priorite}] ${a.action} — ${a.responsable} pour le ${a.echeance}`).join('\\n')}}" }
+          ]
+        }
+      },
+      "name": "Notion — Créer page CR",
+      "type": "n8n-nodes-base.notion",
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — Nouveau transcript": { "main": [[{ "node": "OpenRouter — Analyser réunion", "type": "main", "index": 0 }]] },
+    "OpenRouter — Analyser réunion": { "main": [[{ "node": "Parser JSON", "type": "main", "index": 0 }]] },
+    "Parser JSON": { "main": [[{ "node": "Notion — Créer page CR", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- G3 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">03</span>
+          <div>
+            <div class="card-title">Veille concurrentielle hebdomadaire <span class="tag tag-trigger">Planifié</span><span class="tag tag-ai">IA</span></div>
+            <div class="card-desc">Chaque lundi scrape les news de vos concurrents → analyse IA → rapport synthétique par email</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('gerant_3', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('gerant_3', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="gerant_3">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-gerant_3">{
+  "name": "Gérant PME — Veille Concurrentielle",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 8 * * 1" }] } },
+      "name": "Cron — Lundi 8h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://news.google.com/rss/search?q=CONCURRENT1+OR+CONCURRENT2&hl=fr&gl=FR&ceid=FR:fr",
+        "options": {}
+      },
+      "name": "RSS — News concurrents",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().slice(0, 10);\nconst newsSummary = items.map(i => `• ${i.json.title} (${i.json.pubDate})`).join('\\n');\nreturn [{ json: { news: newsSummary } }];"
+      },
+      "name": "Préparer top 10 news",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un consultant en stratégie d'entreprise. Analyse ces actualités concurrentielles et rédige un rapport en HTML avec: 1) Faits marquants de la semaine, 2) Mouvements stratégiques détectés, 3) Menaces potentielles pour nous, 4) Opportunités à saisir, 5) Actions recommandées.\"},{\"role\":\"user\",\"content\":\"Actualités concurrents cette semaine:\\n{{$json.news}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Analyser veille",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "veille@monentreprise.fr",
+        "toEmail": "direction@monentreprise.fr",
+        "subject": "🔍 Veille Concurrentielle — Semaine du {{new Date().toLocaleDateString('fr-FR')}}",
+        "html": "={{$json.choices[0].message.content}}"
+      },
+      "name": "Gmail — Envoyer rapport veille",
+      "type": "n8n-nodes-base.gmail",
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Cron — Lundi 8h": { "main": [[{ "node": "RSS — News concurrents", "type": "main", "index": 0 }]] },
+    "RSS — News concurrents": { "main": [[{ "node": "Préparer top 10 news", "type": "main", "index": 0 }]] },
+    "Préparer top 10 news": { "main": [[{ "node": "OpenRouter — Analyser veille", "type": "main", "index": 0 }]] },
+    "OpenRouter — Analyser veille": { "main": [[{ "node": "Gmail — Envoyer rapport veille", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- G4 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">04</span>
+          <div>
+            <div class="card-title">Onboarding collaborateur automatisé <span class="tag tag-trigger">Webhook</span><span class="tag tag-ai">IA</span><span class="tag tag-action">Email</span></div>
+            <div class="card-desc">Nouveau collaborateur → génère plan d'intégration personnalisé → envoie emails de bienvenue</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('gerant_4', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('gerant_4', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="gerant_4">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-gerant_4">{
+  "name": "Gérant PME — Onboarding Collaborateur",
+  "nodes": [
+    {
+      "parameters": { "path": "nouvel-employe", "httpMethod": "POST" },
+      "name": "Webhook — Nouveau collaborateur",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es le DRH d'une PME dynamique. Crée un programme d'onboarding personnalisé pour ce nouveau collaborateur. Génère: 1) Email de bienvenue chaleureux (HTML), 2) Checklist semaine 1 (JSON: [{jour, tache, responsable}]), 3) Email pour le manager (HTML). Réponds en JSON: {email_bienvenue, checklist_semaine1, email_manager}\"},{\"role\":\"user\",\"content\":\"Nom: {{$json.prenom}} {{$json.nom}}, Poste: {{$json.poste}}, Département: {{$json.departement}}, Date d'arrivée: {{$json.date_arrivee}}, Manager: {{$json.manager}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Créer plan onboarding",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.item.json.choices[0].message.content;\nconst clean = content.replace(/```json|```/g,'').trim();\nconst data = JSON.parse(clean);\nconst employe = $('Webhook — Nouveau collaborateur').item.json;\nreturn [{ json: { ...data, ...employe } }];"
+      },
+      "name": "Parser et fusionner",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "rh@monentreprise.fr",
+        "toEmail": "={{$json.email}}",
+        "subject": "🎉 Bienvenue chez nous, {{$json.prenom}} !",
+        "html": "={{$json.email_bienvenue}}"
+      },
+      "name": "Gmail — Email bienvenue",
+      "type": "n8n-nodes-base.gmail",
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "rh@monentreprise.fr",
+        "toEmail": "={{$json.email_manager}}",
+        "subject": "📋 Onboarding {{$json.prenom}} {{$json.nom}} — Actions requises",
+        "html": "={{$json.email_manager}}"
+      },
+      "name": "Gmail — Email manager",
+      "type": "n8n-nodes-base.gmail",
+      "position": [900, 420]
+    }
+  ],
+  "connections": {
+    "Webhook — Nouveau collaborateur": { "main": [[{ "node": "OpenRouter — Créer plan onboarding", "type": "main", "index": 0 }]] },
+    "OpenRouter — Créer plan onboarding": { "main": [[{ "node": "Parser et fusionner", "type": "main", "index": 0 }]] },
+    "Parser et fusionner": { "main": [[{ "node": "Gmail — Email bienvenue", "type": "main", "index": 0 }, { "node": "Gmail — Email manager", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- G5 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">05</span>
+          <div>
+            <div class="card-title">Suivi satisfaction client (NPS) automatisé <span class="tag tag-trigger">Planifié</span><span class="tag tag-ai">IA</span></div>
+            <div class="card-desc">Envoie sondage NPS → collecte réponses → analyse IA → plan d'action si score bas</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('gerant_5', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('gerant_5', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="gerant_5">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-gerant_5">{
+  "name": "Gérant PME — Suivi NPS Automatisé",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 10 1 * *" }] } },
+      "name": "Cron — 1er du mois 10h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "Clients!A:C",
+        "keyRow": 1,
+        "dataStartRow": 2
+      },
+      "name": "Lire liste clients actifs",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "satisfaction@monentreprise.fr",
+        "toEmail": "={{$json.email}}",
+        "subject": "⭐ 30 secondes pour nous aider à vous mieux servir",
+        "html": "<h2>Bonjour {{$json.prenom}},</h2><p>Sur une échelle de 0 à 10, recommanderiez-vous nos services ?</p><p><a href='https://VOTRE_FORM_URL?client={{$json.id}}&score=0'>0</a> <a href='https://VOTRE_FORM_URL?client={{$json.id}}&score=5'>5</a> <a href='https://VOTRE_FORM_URL?client={{$json.id}}&score=10'>10</a></p><p>Merci de votre confiance !</p>"
+      },
+      "name": "Gmail — Envoyer sondage NPS",
+      "type": "n8n-nodes-base.gmail",
+      "position": [680, 300]
+    },
+    {
+      "parameters": { "path": "nps-response", "httpMethod": "GET" },
+      "name": "Webhook — Réponse NPS",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 560]
+    },
+    {
+      "parameters": {
+        "conditions": { "number": [{ "value1": "={{parseInt($json.score)}}", "operation": "smallerEqual", "value2": 6 }] }
+      },
+      "name": "IF — Score détracteur ≤6",
+      "type": "n8n-nodes-base.if",
+      "position": [460, 560]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un responsable relation client. Rédige un email de suivi personnalisé pour ce client insatisfait (score NPS bas). L'email doit: s'excuser sincèrement, demander ce qui s'est mal passé, proposer un appel de 15min, offrir une solution concrète. Ton: chaleureux, humain, pas trop commercial.\"},{\"role\":\"user\",\"content\":\"Client: {{$json.client_id}}, Score NPS: {{$json.score}}/10, Commentaire: {{$json.commentaire}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Email récupération",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [680, 460]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "NPS!A:D",
+        "valueInputOption": "USER_ENTERED",
+        "values": { "values": [["={{$json.client_id}}", "={{$json.score}}", "={{$json.commentaire}}", "={{new Date().toLocaleDateString('fr-FR')}}"]] }
+      },
+      "name": "Sheets — Enregistrer NPS",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [680, 660]
+    }
+  ],
+  "connections": {
+    "Cron — 1er du mois 10h": { "main": [[{ "node": "Lire liste clients actifs", "type": "main", "index": 0 }]] },
+    "Lire liste clients actifs": { "main": [[{ "node": "Gmail — Envoyer sondage NPS", "type": "main", "index": 0 }]] },
+    "Webhook — Réponse NPS": { "main": [[{ "node": "IF — Score détracteur ≤6", "type": "main", "index": 0 }]] },
+    "IF — Score détracteur ≤6": { "main": [[{ "node": "OpenRouter — Email récupération", "type": "main", "index": 0 }], [{ "node": "Sheets — Enregistrer NPS", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== JURISTE ======== -->
+  <div id="tab-juriste" class="section">
+    <div class="section-header">
+      <div class="section-icon">⚖️</div>
+      <div>
+        <h2>Juriste / Avocat</h2>
+        <p>Automatisez la rédaction de contrats, la veille juridique, l'analyse de clauses et la gestion des délais procéduraux.</p>
+      </div>
+    </div>
+
+    <!-- J1 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">01</span>
+          <div>
+            <div class="card-title">Analyse de contrat et extraction de risques <span class="tag tag-trigger">Webhook</span><span class="tag tag-ai">IA</span></div>
+            <div class="card-desc">Reçoit un contrat en texte → l'IA identifie clauses abusives, risques et points d'attention</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('juriste_1', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('juriste_1', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="juriste_1">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-juriste_1">{
+  "name": "Juriste — Analyse Contrat et Risques",
+  "nodes": [
+    {
+      "parameters": { "path": "analyser-contrat", "httpMethod": "POST" },
+      "name": "Webhook — Nouveau contrat",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://moncabinet.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un avocat expert en droit des contrats français. Analyse ce contrat et fournis en JSON: {type_contrat, parties, duree, montant, clauses_a_risque: [{clause, risque, severite, recommandation}], clauses_manquantes: [], score_risque_global: 0-10, avis_global, points_forts, points_faibles}. Sois précis et cite les articles concernés.\"},{\"role\":\"user\",\"content\":\"Contrat à analyser:\\n{{$json.contrat_texte}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Analyser contrat",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.item.json.choices[0].message.content;\nconst clean = content.replace(/```json|```/g,'').trim();\nconst analyse = JSON.parse(clean);\nconst webhook = $('Webhook — Nouveau contrat').item.json;\nreturn [{ json: { ...analyse, client: webhook.client, date_analyse: new Date().toISOString() } }];"
+      },
+      "name": "Parser analyse",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "Contrats!A:F",
+        "valueInputOption": "USER_ENTERED",
+        "values": { "values": [["={{$json.client}}", "={{$json.type_contrat}}", "={{$json.score_risque_global}}", "={{$json.clauses_a_risque.length}}", "={{$json.avis_global}}", "={{$json.date_analyse}}"]] }
+      },
+      "name": "Sheets — Archiver analyse",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}"
+      },
+      "name": "Répondre avec analyse",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — Nouveau contrat": { "main": [[{ "node": "OpenRouter — Analyser contrat", "type": "main", "index": 0 }]] },
+    "OpenRouter — Analyser contrat": { "main": [[{ "node": "Parser analyse", "type": "main", "index": 0 }]] },
+    "Parser analyse": { "main": [[{ "node": "Sheets — Archiver analyse", "type": "main", "index": 0 }]] },
+    "Sheets — Archiver analyse": { "main": [[{ "node": "Répondre avec analyse", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- J2 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">02</span>
+          <div>
+            <div class="card-title">Veille juridique et réglementaire <span class="tag tag-trigger">Planifié</span><span class="tag tag-ai">IA</span><span class="tag tag-action">Email</span></div>
+            <div class="card-desc">Scrape Légifrance et Dalloz → filtre par domaine → synthèse IA → newsletter hebdo</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('juriste_2', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('juriste_2', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="juriste_2">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-juriste_2">{
+  "name": "Juriste — Veille Juridique Hebdomadaire",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 7 * * 5" }] } },
+      "name": "Cron — Vendredi 7h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://www.legifrance.gouv.fr/feeds/actualites.rss",
+        "options": {}
+      },
+      "name": "RSS — Légifrance actualités",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://www.vie-publique.fr/rss/actualites.xml",
+        "options": {}
+      },
+      "name": "RSS — Vie Publique",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [460, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "const all = $input.all();\nconst news = all.slice(0, 15).map(i => `TITRE: ${i.json.title}\\nDATE: ${i.json.pubDate}\\nRESUME: ${(i.json.contentSnippet || i.json.content || '').substring(0, 200)}`).join('\\n---\\n');\nreturn [{ json: { news } }];"
+      },
+      "name": "Merger et trier",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://moncabinet.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un juriste spécialisé. Analyse ces actualités juridiques et rédige une veille hebdomadaire en HTML professionnel incluant: nouvelles lois/décrets importants, jurisprudences notables, impacts pratiques pour les entreprises, points de vigilance. Format élégant avec sections claires.\"},{\"role\":\"user\",\"content\":\"Actualités de la semaine:\\n{{$json.news}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Synthèse juridique",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "veille@moncabinet.fr",
+        "toEmail": "equipe@moncabinet.fr",
+        "subject": "⚖️ Veille Juridique — Semaine du {{new Date().toLocaleDateString('fr-FR')}}",
+        "html": "={{$json.choices[0].message.content}}"
+      },
+      "name": "Gmail — Newsletter veille",
+      "type": "n8n-nodes-base.gmail",
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Cron — Vendredi 7h": { "main": [[{ "node": "RSS — Légifrance actualités", "type": "main", "index": 0 }, { "node": "RSS — Vie Publique", "type": "main", "index": 0 }]] },
+    "RSS — Légifrance actualités": { "main": [[{ "node": "Merger et trier", "type": "main", "index": 0 }]] },
+    "RSS — Vie Publique": { "main": [[{ "node": "Merger et trier", "type": "main", "index": 0 }]] },
+    "Merger et trier": { "main": [[{ "node": "OpenRouter — Synthèse juridique", "type": "main", "index": 0 }]] },
+    "OpenRouter — Synthèse juridique": { "main": [[{ "node": "Gmail — Newsletter veille", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- J3 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">03</span>
+          <div>
+            <div class="card-title">Rédaction automatique de mises en demeure <span class="tag tag-trigger">Webhook</span><span class="tag tag-ai">IA</span><span class="tag tag-action">PDF</span></div>
+            <div class="card-desc">Reçoit les faits → génère une mise en demeure professionnelle en HTML prête à imprimer</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('juriste_3', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('juriste_3', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="juriste_3">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-juriste_3">{
+  "name": "Juriste — Rédaction Mise en Demeure",
+  "nodes": [
+    {
+      "parameters": { "path": "mise-en-demeure", "httpMethod": "POST" },
+      "name": "Webhook — Demande MED",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://moncabinet.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un avocat expert. Rédige une mise en demeure formelle conforme au droit français. Le document doit: citer les textes de loi applicables (Code civil, Code de commerce selon le cas), préciser les délais légaux, mentionner les conséquences en cas de non-réponse, et utiliser la formulation juridique appropriée. Format HTML professionnel avec en-tête cabinet.\"},{\"role\":\"user\",\"content\":\"Expéditeur: {{$json.expediteur}}\\nDestinataire: {{$json.destinataire}}\\nObjet du litige: {{$json.objet}}\\nFaits: {{$json.faits}}\\nSomme réclamée: {{$json.montant}}€\\nDélai accordé: {{$json.delai}} jours\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Rédiger MED",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "html",
+        "responseBody": "={{$json.choices[0].message.content}}"
+      },
+      "name": "Retourner document HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — Demande MED": { "main": [[{ "node": "OpenRouter — Rédiger MED", "type": "main", "index": 0 }]] },
+    "OpenRouter — Rédiger MED": { "main": [[{ "node": "Retourner document HTML", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- J4 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">04</span>
+          <div>
+            <div class="card-title">Alerte délais procéduraux <span class="tag tag-trigger">Planifié</span><span class="tag tag-action">Email</span></div>
+            <div class="card-desc">Vérifie chaque matin les dossiers → alerte J-15 et J-7 avant expiration des délais</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('juriste_4', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('juriste_4', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="juriste_4">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-juriste_4">{
+  "name": "Juriste — Alerte Délais Procéduraux",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 8 * * 1-5" }] } },
+      "name": "Cron — Chaque matin",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "Dossiers!A:G",
+        "keyRow": 1,
+        "dataStartRow": 2
+      },
+      "name": "Lire dossiers en cours",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = new Date();\nconst alerts = [];\nconst all = $input.all();\nfor (const item of all) {\n  const echeance = new Date(item.json.date_echeance);\n  const diff = Math.ceil((echeance - today) / (1000 * 60 * 60 * 24));\n  if (diff <= 15 && diff >= 0) {\n    alerts.push({\n      ...item.json,\n      jours_restants: diff,\n      urgence: diff <= 7 ? 'CRITIQUE' : 'ATTENTION'\n    });\n  }\n}\nreturn alerts.length > 0 ? alerts.map(a => ({ json: a })) : [{ json: { noAlert: true } }];"
+      },
+      "name": "Calculer délais critiques",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": { "boolean": [{ "value1": "={{!$json.noAlert}}", "value2": true }] }
+      },
+      "name": "IF — Alertes à envoyer",
+      "type": "n8n-nodes-base.if",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "alertes@moncabinet.fr",
+        "toEmail": "={{$json.avocat_responsable}}",
+        "subject": "{{$json.urgence === 'CRITIQUE' ? '🚨' : '⚠️'}} Délai {{$json.urgence}} — {{$json.numero_dossier}} — {{$json.jours_restants}}j restants",
+        "html": "<h2>{{$json.urgence === 'CRITIQUE' ? '🚨 URGENT' : '⚠️ Attention'}} — Délai procédural</h2><table><tr><td><b>Dossier</b></td><td>{{$json.numero_dossier}} — {{$json.intitule}}</td></tr><tr><td><b>Client</b></td><td>{{$json.client}}</td></tr><tr><td><b>Type d'acte</b></td><td>{{$json.type_acte}}</td></tr><tr><td><b>Échéance</b></td><td>{{$json.date_echeance}}</td></tr><tr><td><b>Jours restants</b></td><td><strong style='color:red'>{{$json.jours_restants}} jours</strong></td></tr></table><p>Action requise immédiatement.</p>"
+      },
+      "name": "Gmail — Alerte avocat",
+      "type": "n8n-nodes-base.gmail",
+      "position": [1120, 200]
+    }
+  ],
+  "connections": {
+    "Cron — Chaque matin": { "main": [[{ "node": "Lire dossiers en cours", "type": "main", "index": 0 }]] },
+    "Lire dossiers en cours": { "main": [[{ "node": "Calculer délais critiques", "type": "main", "index": 0 }]] },
+    "Calculer délais critiques": { "main": [[{ "node": "IF — Alertes à envoyer", "type": "main", "index": 0 }]] },
+    "IF — Alertes à envoyer": { "main": [[{ "node": "Gmail — Alerte avocat", "type": "main", "index": 0 }], []] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- J5 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">05</span>
+          <div>
+            <div class="card-title">Résumé de jurisprudence automatique <span class="tag tag-trigger">Webhook</span><span class="tag tag-ai">IA</span><span class="tag tag-action">Notion</span></div>
+            <div class="card-desc">Colle un arrêt → IA extrait faits, dispositif, portée → fiche jurisprudence dans Notion</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('juriste_5', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('juriste_5', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="juriste_5">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-juriste_5">{
+  "name": "Juriste — Fiche Jurisprudence Auto",
+  "nodes": [
+    {
+      "parameters": { "path": "fiche-jurisprudence", "httpMethod": "POST" },
+      "name": "Webhook — Nouvel arrêt",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://moncabinet.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un juriste expert. Analyse cet arrêt et crée une fiche en JSON: {reference, juridiction, date, chambre, mots_cles, faits_en_bref, probleme_juridique, solution_retenue, portee_pratique, liens_autres_arrets, domaines_droit: []}\"},{\"role\":\"user\",\"content\":\"Arrêt à analyser:\\n{{$json.arret_texte}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Analyser arrêt",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.item.json.choices[0].message.content;\nconst clean = content.replace(/```json|```/g,'').trim();\nreturn [{ json: JSON.parse(clean) }];"
+      },
+      "name": "Parser fiche",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "databaseId": "VOTRE_NOTION_DATABASE_ID",
+        "title": "={{$json.reference}} — {{$json.probleme_juridique.substring(0,60)}}...",
+        "propertiesUi": {
+          "propertyValues": [
+            { "key": "Juridiction", "type": "richText", "textValue": "={{$json.juridiction}}" },
+            { "key": "Date", "type": "date", "dateValue": "={{$json.date}}" },
+            { "key": "Domaines", "type": "multiSelect", "multiSelectValue": "={{$json.domaines_droit}}" }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            { "type": "callout", "textContent": "={{$json.portee_pratique}}" },
+            { "type": "heading_2", "textContent": "Faits" },
+            { "type": "paragraph", "textContent": "={{$json.faits_en_bref}}" },
+            { "type": "heading_2", "textContent": "Problème Juridique" },
+            { "type": "paragraph", "textContent": "={{$json.probleme_juridique}}" },
+            { "type": "heading_2", "textContent": "Solution Retenue" },
+            { "type": "paragraph", "textContent": "={{$json.solution_retenue}}" }
+          ]
+        }
+      },
+      "name": "Notion — Créer fiche jurisprudence",
+      "type": "n8n-nodes-base.notion",
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — Nouvel arrêt": { "main": [[{ "node": "OpenRouter — Analyser arrêt", "type": "main", "index": 0 }]] },
+    "OpenRouter — Analyser arrêt": { "main": [[{ "node": "Parser fiche", "type": "main", "index": 0 }]] },
+    "Parser fiche": { "main": [[{ "node": "Notion — Créer fiche jurisprudence", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== COMMERCIAL ======== -->
+  <div id="tab-commercial" class="section">
+    <div class="section-header">
+      <div class="section-icon">🤝</div>
+      <div>
+        <h2>Commercial / Sales</h2>
+        <p>Boostez vos ventes avec la qualification automatique des leads, la personnalisation des offres et le suivi du pipeline commercial.</p>
+      </div>
+    </div>
+
+    <!-- C1 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">01</span>
+          <div>
+            <div class="card-title">Qualification automatique des leads entrants <span class="tag tag-trigger">Webhook</span><span class="tag tag-ai">IA</span><span class="tag tag-action">CRM</span></div>
+            <div class="card-desc">Nouveau lead formulaire → scoring IA → affectation commercial → email de bienvenue personnalisé</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('commercial_1', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('commercial_1', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="commercial_1">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-commercial_1">{
+  "name": "Commercial — Qualification Leads IA",
+  "nodes": [
+    {
+      "parameters": { "path": "nouveau-lead", "httpMethod": "POST" },
+      "name": "Webhook — Nouveau lead",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un commercial expert en qualification B2B. Analyse ce lead et retourne en JSON: {score_qualification: 0-100, segment: 'A/B/C', budget_estime: string, urgence: 'haute/moyenne/faible', besoins_identifies: [], objections_potentielles: [], approche_recommandee: string, commercial_ideal: 'junior/senior/expert', email_personnalise: string (HTML), priorite_rappel_jours: number}\"},{\"role\":\"user\",\"content\":\"Prénom: {{$json.prenom}}, Société: {{$json.societe}}, Poste: {{$json.poste}}, Secteur: {{$json.secteur}}, Taille: {{$json.taille_entreprise}} employés, Message: {{$json.message}}, Source: {{$json.source}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Qualifier lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.item.json.choices[0].message.content;\nconst clean = content.replace(/```json|```/g,'').trim();\nconst qualification = JSON.parse(clean);\nconst lead = $('Webhook — Nouveau lead').item.json;\nreturn [{ json: { ...lead, ...qualification } }];"
+      },
+      "name": "Parser qualification",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "Leads!A:J",
+        "valueInputOption": "USER_ENTERED",
+        "values": { "values": [["={{$json.prenom}}", "={{$json.societe}}", "={{$json.email}}", "={{$json.score_qualification}}", "={{$json.segment}}", "={{$json.urgence}}", "={{$json.approche_recommandee}}", "={{$json.commercial_ideal}}", "En cours", "={{new Date().toLocaleDateString('fr-FR')}}"]] }
+      },
+      "name": "Sheets — Enregistrer lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "commercial@monentreprise.fr",
+        "toEmail": "={{$json.email}}",
+        "subject": "Bienvenue {{$json.prenom}} — Votre demande chez {{$json.societe}}",
+        "html": "={{$json.email_personnalise}}"
+      },
+      "name": "Gmail — Email bienvenue personnalisé",
+      "type": "n8n-nodes-base.gmail",
+      "position": [900, 500]
+    }
+  ],
+  "connections": {
+    "Webhook — Nouveau lead": { "main": [[{ "node": "OpenRouter — Qualifier lead", "type": "main", "index": 0 }]] },
+    "OpenRouter — Qualifier lead": { "main": [[{ "node": "Parser qualification", "type": "main", "index": 0 }]] },
+    "Parser qualification": { "main": [[{ "node": "Sheets — Enregistrer lead", "type": "main", "index": 0 }, { "node": "Gmail — Email bienvenue personnalisé", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- C2 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">02</span>
+          <div>
+            <div class="card-title">Génération de propositions commerciales <span class="tag tag-trigger">Webhook</span><span class="tag tag-ai">IA</span></div>
+            <div class="card-desc">Reçoit brief client → génère une proposition commerciale complète personnalisée en HTML</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('commercial_2', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('commercial_2', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="commercial_2">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-commercial_2">{
+  "name": "Commercial — Proposition Commerciale Auto",
+  "nodes": [
+    {
+      "parameters": { "path": "generer-proposition", "httpMethod": "POST" },
+      "name": "Webhook — Brief client",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un commercial expert. Génère une proposition commerciale persuasive et professionnelle en HTML avec: page de garde, résumé exécutif, compréhension des besoins, notre approche, livrables détaillés, planning, investissement (grille tarifaire), ROI estimé, références clients, conditions et prochaines étapes. Style: moderne, dynamique, orienté résultats.\"},{\"role\":\"user\",\"content\":\"Client: {{$json.client}}, Secteur: {{$json.secteur}}, Besoin: {{$json.besoin}}, Budget indicatif: {{$json.budget}}€, Délai souhaité: {{$json.delai}}, Interlocuteur: {{$json.contact}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Générer proposition",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "commercial@monentreprise.fr",
+        "toEmail": "={{$json.email_client}}",
+        "subject": "Proposition Commerciale — {{$json.client}} — {{new Date().toLocaleDateString('fr-FR')}}",
+        "html": "={{$node[\"OpenRouter — Générer proposition\"].json.choices[0].message.content}}"
+      },
+      "name": "Gmail — Envoyer proposition",
+      "type": "n8n-nodes-base.gmail",
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — Brief client": { "main": [[{ "node": "OpenRouter — Générer proposition", "type": "main", "index": 0 }]] },
+    "OpenRouter — Générer proposition": { "main": [[{ "node": "Gmail — Envoyer proposition", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- C3 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">03</span>
+          <div>
+            <div class="card-title">Séquence de nurturing automatisée <span class="tag tag-trigger">Planifié</span><span class="tag tag-ai">IA</span><span class="tag tag-action">Email</span></div>
+            <div class="card-desc">Leads froids → séquence de 5 emails espacés → contenus personnalisés par secteur</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('commercial_3', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('commercial_3', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="commercial_3">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-commercial_3">{
+  "name": "Commercial — Nurturing Leads Automatisé",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 10 * * 1,3,5" }] } },
+      "name": "Cron — Lu/Me/Ve 10h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "Leads!A:L",
+        "keyRow": 1,
+        "dataStartRow": 2
+      },
+      "name": "Lire leads en nurturing",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [{ "value1": "={{$json.statut}}", "operation": "equal", "value2": "Nurturing" }],
+          "number": [{ "value1": "={{$json.nb_emails_envoyes}}", "operation": "smallerEqual", "value2": 4 }]
+        }
+      },
+      "name": "Filtrer leads à nurturer",
+      "type": "n8n-nodes-base.filter",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un expert en copywriting commercial. Rédige un email de nurturing (n°{{$json.nb_emails_envoyes+1}}/5) pour ce prospect. L'email doit apporter de la valeur (conseil, insight, cas client), pas vendre directement. Court (150 mots max), conversationnel, avec 1 seul CTA soft. Format HTML.\"},{\"role\":\"user\",\"content\":\"Prospect: {{$json.prenom}} de {{$json.societe}} ({{$json.secteur}}), Besoin exprimé: {{$json.besoin}}, Email précédent: {{$json.dernier_sujet_email}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Rédiger email nurturing",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "commercial@monentreprise.fr",
+        "toEmail": "={{$json.email}}",
+        "subject": "={{$json.prenom}}, {{$json.nb_emails_envoyes === 0 ? 'une idée pour ' + $json.societe : $json.nb_emails_envoyes === 2 ? 'cas client ' + $json.secteur : 'question rapide'}}",
+        "html": "={{$node[\"OpenRouter — Rédiger email nurturing\"].json.choices[0].message.content}}"
+      },
+      "name": "Gmail — Envoyer nurturing",
+      "type": "n8n-nodes-base.gmail",
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Cron — Lu/Me/Ve 10h": { "main": [[{ "node": "Lire leads en nurturing", "type": "main", "index": 0 }]] },
+    "Lire leads en nurturing": { "main": [[{ "node": "Filtrer leads à nurturer", "type": "main", "index": 0 }]] },
+    "Filtrer leads à nurturer": { "main": [[{ "node": "OpenRouter — Rédiger email nurturing", "type": "main", "index": 0 }]] },
+    "OpenRouter — Rédiger email nurturing": { "main": [[{ "node": "Gmail — Envoyer nurturing", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- C4 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">04</span>
+          <div>
+            <div class="card-title">Analyse des objections et réponses types <span class="tag tag-trigger">Webhook</span><span class="tag tag-ai">IA</span></div>
+            <div class="card-desc">Commercial reçoit une objection → IA génère 3 réponses adaptées + argumentaire de contournement</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('commercial_4', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('commercial_4', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="commercial_4">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-commercial_4">{
+  "name": "Commercial — Gestion Objections IA",
+  "nodes": [
+    {
+      "parameters": { "path": "traiter-objection", "httpMethod": "POST" },
+      "name": "Webhook — Objection reçue",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un coach commercial expert utilisant les méthodes SPIN, CAB et BATNA. Analyse cette objection et fournis en JSON: {type_objection, analyse_psychologique, reponses: [{strategie, texte_reponse, ton}], questions_decouverte: [], arguments_roi: [], erreurs_a_eviter: [], prochaine_etape_recommandee}\"},{\"role\":\"user\",\"content\":\"Objection: {{$json.objection}}\\nContexte: Client {{$json.client}}, Secteur {{$json.secteur}}, Produit discuté: {{$json.produit}}, Stade: {{$json.stade_negociation}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Analyser objection",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.item.json.choices[0].message.content;\nconst clean = content.replace(/```json|```/g,'').trim();\nreturn [{ json: JSON.parse(clean) }];"
+      },
+      "name": "Parser réponses",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}"
+      },
+      "name": "Retourner stratégies",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — Objection reçue": { "main": [[{ "node": "OpenRouter — Analyser objection", "type": "main", "index": 0 }]] },
+    "OpenRouter — Analyser objection": { "main": [[{ "node": "Parser réponses", "type": "main", "index": 0 }]] },
+    "Parser réponses": { "main": [[{ "node": "Retourner stratégies", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- C5 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-num">05</span>
+          <div>
+            <div class="card-title">Pipeline commercial — Rapport hebdo & alertes <span class="tag tag-trigger">Planifié</span><span class="tag tag-ai">IA</span><span class="tag tag-action">Slack</span></div>
+            <div class="card-desc">Chaque vendredi analyse le pipeline → KPIs semaine → opportunités bloquées → rapport Slack</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn-copy" onclick="copyCode('commercial_5', this)">📋 Copier JSON</button>
+          <button class="btn-toggle" onclick="toggleCode('commercial_5', this)">▼</button>
+        </div>
+      </div>
+      <div class="code-block" id="commercial_5">
+        <div class="code-instructions">
+          <div class="step-badge"><b>1</b> Copier le JSON</div>
+          <div class="step-badge"><b>2</b> n8n → Import Workflow</div>
+          <div class="step-badge"><b>3</b> Remplacer votre clé API</div>
+          <div class="step-badge"><b>4</b> Activer le workflow</div>
+        </div>
+        <pre id="code-commercial_5">{
+  "name": "Commercial — Rapport Pipeline Hebdomadaire",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 17 * * 5" }] } },
+      "name": "Cron — Vendredi 17h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "VOTRE_GOOGLE_SHEET_ID",
+        "range": "Pipeline!A:I",
+        "keyRow": 1,
+        "dataStartRow": 2
+      },
+      "name": "Lire pipeline",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const all = $input.all();\nconst total = all.reduce((s, i) => s + parseFloat(i.json.montant || 0), 0);\nconst stades = {};\nall.forEach(i => {\n  stades[i.json.stade] = (stades[i.json.stade] || 0) + 1;\n});\nconst bloques = all.filter(i => {\n  const lastContact = new Date(i.json.dernier_contact);\n  const diff = (new Date() - lastContact) / (1000 * 60 * 60 * 24);\n  return diff > 14;\n});\nconst pipelineText = `Pipeline total: ${total.toFixed(0)}€ (${all.length} opportunités)\\nStades: ${JSON.stringify(stades)}\\nOpportunités bloquées (+14j sans contact): ${bloques.map(b => b.json.client + ' (' + b.json.montant + '€)').join(', ')}`;\nreturn [{ json: { pipelineText, total, nb_opps: all.length, nb_bloques: bloques.length } }];"
+      },
+      "name": "Analyser pipeline",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "Bearer YOUR_OPENROUTER_API_KEY" },
+            { "name": "HTTP-Referer", "value": "https://monentreprise.fr" }
+          ]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            { "name": "model", "value": "mistralai/mistral-7b-instruct:free" },
+            { "name": "messages", "value": "=[{\"role\":\"system\",\"content\":\"Tu es un directeur commercial expérimenté. Rédige un rapport hebdomadaire de pipeline concis pour Slack (format texte avec emojis). Inclure: 📊 bilan chiffré, 🏆 victoires de la semaine, ⚠️ alertes opportunités bloquées, 🎯 priorités semaine prochaine, 💡 conseil actionnable. Maximum 250 mots.\"},{\"role\":\"user\",\"content\":\"{{$json.pipelineText}}\"}]" }
+          ]
+        }
+      },
+      "name": "OpenRouter — Rapport pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#commercial-team",
+        "text": "{{$json.choices[0].message.content}}"
+      },
+      "name": "Slack — Rapport équipe commercial",
+      "type": "n8n-nodes-base.slack",
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Cron — Vendredi 17h": { "main": [[{ "node": "Lire pipeline", "type": "main", "index": 0 }]] },
+    "Lire pipeline": { "main": [[{ "node": "Analyser pipeline", "type": "main", "index": 0 }]] },
+    "Analyser pipeline": { "main": [[{ "node": "OpenRouter — Rapport pipeline", "type": "main", "index": 0 }]] },
+    "OpenRouter — Rapport pipeline": { "main": [[{ "node": "Slack — Rapport équipe commercial", "type": "main", "index": 0 }]] }
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+function toggleCode(id, btn) {
+  const block = document.getElementById(id);
+  const isOpen = block.classList.toggle('open');
+  btn.textContent = isOpen ? '▲' : '▼';
+}
+
+function copyCode(id, btn) {
+  const code = document.getElementById('code-' + id).textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '✅ Copié !';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 Copier JSON';
+      btn.classList.remove('copied');
+    }, 2500);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = code;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✅ Copié !';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 Copier JSON';
+      btn.classList.remove('copied');
+    }, 2500);
+  });
+}
+</script>
+</body>
+</html>
